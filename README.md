@@ -68,4 +68,4 @@ just install   # builds and installs the binary to ~/.local/bin
 
 ## License
 
-TBD.
+Released under the [MIT License](LICENSE).
