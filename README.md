@@ -27,6 +27,8 @@ A single binary speaking MCP over stdio. No daemon, no network service, no backg
 
 ## MCP tools
 
+These describe the intended contract — none are implemented yet; see the issues for build order.
+
 | Tool | Purpose |
 | --- | --- |
 | `list_candidates(tags?, limit?, exclude_recent?)` | Return a shortlist of items (id, text, attribution, tags), excluding recently-used ones. The agent picks from these. |
