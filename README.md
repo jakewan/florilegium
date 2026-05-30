@@ -4,7 +4,7 @@ A general-purpose [MCP](https://modelcontextprotocol.io) server that surfaces on
 
 > A *florilegium* (Latin *flos* "flower" + *legere* "to gather") is a curated anthology of choice extracts gathered from many sources. The name is the data model: you bring the anthology; the server gathers from it.
 
-> **Status: early.** The repository is scaffolded — it builds, tests, lints, and installs a runnable MCP server binary — but the server exposes no tools yet. The corpus, history store, and tool contract are tracked in the issues; see them for the planned build order.
+> **Status: early.** The repository is scaffolded — it builds, tests, lints, and installs a runnable MCP server binary that loads its config at startup and registers its tool contract for discovery, but the tool handlers are stubbed. The corpus, history store, and handler logic are tracked in the issues; see them for the planned build order.
 
 ## The idea
 
@@ -68,7 +68,7 @@ Following the sibling tooling pattern:
 just install   # builds and installs the binary to ~/.local/bin
 ```
 
-The binary builds and runs today, but exposes no tools yet — useful end-to-end behavior arrives with the corpus, history, and tool work tracked in the issues.
+The binary builds and runs today — it requires a config file at startup and exposes its tools for discovery — but the handlers are stubbed, so useful end-to-end behavior arrives with the corpus, history, and selection work tracked in the issues.
 
 ## License
 
