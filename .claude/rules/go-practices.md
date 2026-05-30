@@ -9,6 +9,7 @@ Conventions for Go code in this repository. These load when editing Go files.
 ## Errors
 
 - Wrap errors with context as they propagate: `fmt.Errorf("loading corpus: %w", err)`. Use `%w` so callers can `errors.Is`/`errors.As` the cause.
+- When matching a sentinel error from a dependency, confirm it is actually reachable — `errors.Is` only traverses causes wrapped with `%w`, so a cause formatted with `%v` (or otherwise absent from the chain) silently fails to match. Verify the wrapping, or match a stable error code or type, rather than assuming `errors.Is` works.
 - Return errors; don't `log.Fatal` outside `main`. The single acceptable fatal is the top-level server-run error in `main`.
 - Make validation errors specific and actionable — name what was wrong (which id, which field), so the message stands on its own.
 
