@@ -56,7 +56,7 @@ Go authoring conventions are in `.claude/rules/go-practices.md` (loaded when edi
 
 - **Single binary, daemonless.** It loads the corpus, reads/writes a small local history store, serves a session over stdio, and exits. No background process, no network service.
 - **MCP over stdio is JSON-RPC.** stdout carries the protocol and nothing else — send diagnostics to stderr (`log`), never to stdout. Exiting on stdin EOF is normal shutdown.
-- **Storage engine is deliberately undecided.** Whether history is SQLite or a flat file is an open decision recorded in its own issue; don't assume one.
+- **History is a flat, append-only JSON-lines file** (`history.jsonl` under `$XDG_STATE_HOME/florilegium/`), one `{"id","at"}` object per recorded use. The model is an ordered log and the only query is "the last N picks," so a SQL engine and migrations would be weight without benefit for a daemonless, single-process-per-session tool. Recency is count-based — eligibility excludes ids appearing in the most recent N entries. Known tradeoffs: the log grows unbounded (compaction is a future follow-up) and cross-process ordering is by append time.
 
 ## Conventions in this repo
 
