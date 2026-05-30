@@ -27,7 +27,7 @@ Conventional Commits: `type(scope): subject`.
 
 - **Types**: `feat`, `fix`, `refactor`, `docs`, `build`, `ci`, `test`, `chore`.
 - **Scopes** (this project's areas): `mcp`, `corpus`, `history`, `config`, `ci`, `build`, `docs`, `rules`, `dx`, `deps`. `dx` covers developer-experience work (tooling, justfile, hooks); `deps` covers dependency updates (e.g., Dependabot bumps).
-- **Body**: prose explaining *why* the change was made — the motivation, constraint, or problem it solves — not a restatement of the diff, and not the episode that prompted it ("the review surfaced...", "earlier this did X"). State the durable rationale, not how the change came about.
+- **Body**: short prose stating *why* — the motivation, constraint, or problem solved — sized to the change, not its diff. A small change may need a one-line body or none. Don't restate the diff, don't narrate the journey ("the review surfaced...", "earlier this did X"), and don't re-derive rationale a durable doc (a design decision in `CLAUDE.md`, a doc comment) already records — point to it or omit it. State the durable *why* once, concisely.
 - **Issue references**: `Closes #N` (or `Related to #N`); repeat the keyword per issue.
 
 ## Changelog
