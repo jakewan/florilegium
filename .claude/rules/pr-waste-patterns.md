@@ -2,9 +2,9 @@
 
 (extension point: `pr-waste-patterns`)
 
-Waste in a PR diff in this project means artifacts that consume reviewer attention without creating value: scaffolding left over from development, debug instrumentation that didn't get removed, conflict resolution that didn't get cleaned up. The patterns below are the source of truth for what an assessment should flag, regardless of which tool runs the scan; `/pr-pulse` consumes them via the `pr-waste-patterns` extension point, but a contributor running a manual lifecycle check should read this file directly.
+Waste in a PR diff in this project means artifacts that consume reviewer attention without creating value: scaffolding left over from development, debug instrumentation that didn't get removed, conflict resolution that didn't get cleaned up. The patterns below are the source of truth for what a PR health check should flag, regardless of which tool runs the scan — a reviewer doing it by hand reads this file directly; a tooling-assisted check consumes it via the `pr-waste-patterns` extension point.
 
-The global `/pr-pulse` skill scans only conflict markers in added lines on its own. Everything else lives here so this Go project can express its language-specific waste set without skill code changes.
+A baseline scan need only catch conflict markers in added lines; everything else lives here so this Go project can express its language-specific waste set in one place.
 
 ## Patterns to Flag in Added Lines
 
