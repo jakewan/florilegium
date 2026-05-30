@@ -12,6 +12,7 @@ Conventions for Go code in this repository. These load when editing Go files.
 - When matching a sentinel error from a dependency, confirm it is actually reachable — `errors.Is` only traverses causes wrapped with `%w`, so a cause formatted with `%v` (or otherwise absent from the chain) silently fails to match. Verify the wrapping, or match a stable error code or type, rather than assuming `errors.Is` works.
 - Return errors; don't `log.Fatal` outside `main`. The single acceptable fatal is the top-level server-run error in `main`.
 - Make validation errors specific and actionable — name what was wrong (which id, which field), so the message stands on its own.
+- When validating a required string field as non-empty, trim whitespace first (`strings.TrimSpace(s) == ""`) so a whitespace-only value is rejected consistently with an absent one — a blank-looking value should not pass a check that a missing one fails.
 
 ## Context
 
