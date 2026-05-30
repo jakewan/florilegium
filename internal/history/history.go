@@ -57,10 +57,17 @@ func (s *Store) Record(_ context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("opening history %s: %w", s.path, err)
 	}
-	defer f.Close()
 
-	if _, err := f.Write(append(line, '\n')); err != nil {
-		return fmt.Errorf("appending to history %s: %w", s.path, err)
+	// Close is checked explicitly rather than deferred: on a write, a Close
+	// error can be the first sign the bytes never reached disk, so it must not
+	// be swallowed.
+	_, writeErr := f.Write(append(line, '\n'))
+	closeErr := f.Close()
+	if writeErr != nil {
+		return fmt.Errorf("appending to history %s: %w", s.path, writeErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("closing history %s: %w", s.path, closeErr)
 	}
 	return nil
 }
@@ -100,8 +107,6 @@ func (s *Store) recent(window int) (map[string]struct{}, error) {
 		}
 		return nil, fmt.Errorf("reading history %s: %w", s.path, err)
 	}
-	defer f.Close()
-
 	var order []string
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -115,14 +120,18 @@ func (s *Store) recent(window int) (map[string]struct{}, error) {
 		}
 		order = append(order, e.ID)
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanning history %s: %w", s.path, err)
+	// Close after scanning, preferring the scan error if both fail — a read
+	// Close error is unlikely but should not be silently dropped under the
+	// repo's check-blank errcheck.
+	scanErr := scanner.Err()
+	if closeErr := f.Close(); closeErr != nil && scanErr == nil {
+		scanErr = closeErr
+	}
+	if scanErr != nil {
+		return nil, fmt.Errorf("reading history %s: %w", s.path, scanErr)
 	}
 
-	start := len(order) - window
-	if start < 0 {
-		start = 0
-	}
+	start := max(0, len(order)-window)
 	for _, id := range order[start:] {
 		ids[id] = struct{}{}
 	}
