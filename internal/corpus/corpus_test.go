@@ -54,6 +54,15 @@ func TestLoad(t *testing.T) {
 			wantErr: "item 1", // names the offending item by 1-based position
 		},
 		{
+			name:  "whitespace-only id",
+			write: true,
+			content: "" +
+				"items:\n" +
+				"  - id: \"   \"\n" +
+				"    text: a thought\n",
+			wantErr: "item 1", // a blank id is treated like a missing one — named by position
+		},
+		{
 			name:  "missing text",
 			write: true,
 			content: "" +

@@ -59,7 +59,9 @@ func Load(_ context.Context, path string) (*Corpus, error) {
 	for i, it := range c.Items {
 		// Position is 1-based and reported when there is no id to name the item by.
 		pos := i + 1
-		if it.ID == "" {
+		// Trim before the emptiness check so a whitespace-only id is rejected like
+		// a missing one — a blank id cannot serve as the stable history key.
+		if strings.TrimSpace(it.ID) == "" {
 			return nil, fmt.Errorf("corpus %s: item %d is missing an \"id\"", path, pos)
 		}
 		if strings.TrimSpace(it.Text) == "" {
