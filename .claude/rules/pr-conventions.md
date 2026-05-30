@@ -26,7 +26,7 @@ Avoid:
 Conventional Commits: `type(scope): subject`.
 
 - **Types**: `feat`, `fix`, `refactor`, `docs`, `build`, `ci`, `test`, `chore`.
-- **Scopes** (this project's areas): `mcp`, `corpus`, `history`, `config`, `ci`, `build`, `docs`, `rules`, `dx`. `dx` covers developer-experience work (tooling, justfile, hooks).
+- **Scopes** (this project's areas): `mcp`, `corpus`, `history`, `config`, `ci`, `build`, `docs`, `rules`, `dx`, `deps`. `dx` covers developer-experience work (tooling, justfile, hooks); `deps` covers dependency updates (e.g., Dependabot bumps).
 - **Body**: prose explaining *why* the change was made — the motivation, constraint, or problem it solves — not a restatement of the diff.
 - **Issue references**: `Closes #N` (or `Related to #N`); repeat the keyword per issue.
 
