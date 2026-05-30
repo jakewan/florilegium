@@ -22,10 +22,12 @@ const (
 	serverVersion = "0.1.0"
 
 	// codeServerClosing is the SDK's JSON-RPC error code for a connection torn
-	// down because the server is shutting down (jsonrpc2.ErrServerClosing). It
-	// is not in the public jsonrpc package's exported standard codes, so it is
-	// named here. Matching the code rather than the message text keeps clean-
-	// shutdown detection stable across SDK upgrades that reword the message.
+	// down because the server is shutting down — the SDK's internal
+	// jsonrpc2.ErrServerClosing, which surfaces to callers as a *jsonrpc.Error
+	// carrying this code. It is not among the public jsonrpc package's exported
+	// standard codes, so it is named here. Matching the code rather than the
+	// message text keeps clean-shutdown detection stable across SDK upgrades
+	// that reword the message.
 	codeServerClosing = -32004
 )
 
