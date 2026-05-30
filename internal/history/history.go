@@ -103,8 +103,16 @@ func (s *Store) Eligible(_ context.Context, candidateIDs []string, window int) (
 
 // recent returns the set of ids appearing in the last window entries of the log.
 // A missing file yields an empty set so a first run treats everything as
-// eligible. Blank or unparseable lines are skipped defensively — a partially
-// written trailing line from a crash should not fail the whole read.
+// eligible.
+//
+// The reader keeps only the last window ids in a ring buffer rather than loading
+// the whole log, so memory stays bounded by the window no matter how large the
+// log grows. It uses bufio.Reader, not bufio.Scanner: Scanner caps a line at
+// 64K and aborts the entire read with ErrTooLong on a longer one, which would
+// defeat the intent of tolerating a single corrupt line. ReadString imposes no
+// line cap, so a blank, over-long, or otherwise malformed line is skipped by
+// the unmarshal guard rather than failing the read — a partially written
+// trailing line from a crash should not lose the rest of the history.
 func (s *Store) recent(window int) (map[string]struct{}, error) {
 	ids := make(map[string]struct{})
 	if window <= 0 {
@@ -118,32 +126,45 @@ func (s *Store) recent(window int) (map[string]struct{}, error) {
 		}
 		return nil, fmt.Errorf("reading history %s: %w", s.path, err)
 	}
-	var order []string
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		raw := scanner.Bytes()
-		if len(raw) == 0 {
-			continue
+
+	// ring holds the most recent ids, overwriting oldest-first once full, so at
+	// most window ids are retained while scanning a log of any size.
+	ring := make([]string, 0, window)
+	next := 0
+	reader := bufio.NewReader(f)
+	var readErr error
+	for {
+		line, err := reader.ReadString('\n')
+		if len(line) > 0 {
+			var e entry
+			if jsonErr := json.Unmarshal([]byte(line), &e); jsonErr == nil && e.ID != "" {
+				if len(ring) < window {
+					ring = append(ring, e.ID)
+				} else {
+					ring[next] = e.ID
+					next = (next + 1) % window
+				}
+			}
 		}
-		var e entry
-		if err := json.Unmarshal(raw, &e); err != nil || e.ID == "" {
-			continue
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				readErr = err
+			}
+			break
 		}
-		order = append(order, e.ID)
-	}
-	// Close after scanning, preferring the scan error if both fail — a read
-	// Close error is unlikely but should not be silently dropped under the
-	// repo's check-blank errcheck.
-	scanErr := scanner.Err()
-	if closeErr := f.Close(); closeErr != nil && scanErr == nil {
-		scanErr = closeErr
-	}
-	if scanErr != nil {
-		return nil, fmt.Errorf("reading history %s: %w", s.path, scanErr)
 	}
 
-	start := max(0, len(order)-window)
-	for _, id := range order[start:] {
+	// Close after reading, preferring the read error if both fail — a read Close
+	// error is unlikely but should not be silently dropped under the repo's
+	// check-blank errcheck.
+	if closeErr := f.Close(); closeErr != nil && readErr == nil {
+		readErr = closeErr
+	}
+	if readErr != nil {
+		return nil, fmt.Errorf("reading history %s: %w", s.path, readErr)
+	}
+
+	for _, id := range ring {
 		ids[id] = struct{}{}
 	}
 	return ids, nil
