@@ -4,7 +4,7 @@ A general-purpose [MCP](https://modelcontextprotocol.io) server that surfaces on
 
 > A *florilegium* (Latin *flos* "flower" + *legere* "to gather") is a curated anthology of choice extracts gathered from many sources. The name is the data model: you bring the anthology; the server gathers from it.
 
-> **Status: early.** The repository is scaffolded — it builds, tests, lints, and installs a runnable MCP server binary that loads its config at startup and registers its tool contract for discovery, but the tool handlers are stubbed. The corpus, history store, and handler logic are tracked in the issues; see them for the planned build order.
+> **Status: early but working.** The server builds, installs, and runs end-to-end: it loads a corpus and config at startup, serves candidates over MCP, records uses, and excludes recently-surfaced items. See [Getting started](#getting-started) for a minimal run. Compaction of the history log and other refinements are tracked in the issues.
 
 ## The idea
 
@@ -26,8 +26,6 @@ A single binary speaking MCP over stdio. No daemon, no network service, no backg
 - **Config** — a YAML file (under `$XDG_CONFIG_HOME/florilegium/`) pointing at the corpus and setting the recency window.
 
 ## MCP tools
-
-These describe the intended contract — none are implemented yet; see the issues for build order.
 
 | Tool | Purpose |
 | --- | --- |
@@ -51,6 +49,8 @@ items:
 
 Stable `id`s are required — the history store keys on them, so renaming or removing an item is a deliberate act, not an accident of editing the text.
 
+A ready-to-use [`example-corpus.yml`](example-corpus.yml) ships at the repo root; copy it as a starting point and replace the items with your own.
+
 ## Configuration
 
 ```yaml
@@ -68,7 +68,49 @@ Following the sibling tooling pattern:
 just install   # builds and installs the binary to ~/.local/bin
 ```
 
-The binary builds and runs today — it requires a config file at startup and exposes its tools for discovery — but the handlers are stubbed, so useful end-to-end behavior arrives with the corpus, history, and selection work tracked in the issues.
+Ensure `~/.local/bin` is on your `PATH`.
+
+## Getting started
+
+A minimal end-to-end run against the example corpus.
+
+**1. Install the binary** (above): `just install`.
+
+**2. Write a config.** Create `$XDG_CONFIG_HOME/florilegium/config.yml` (defaults to `~/.config/florilegium/config.yml`) and point it at the example corpus:
+
+```yaml
+corpus: /absolute/path/to/florilegium/example-corpus.yml
+recency:
+  window: 3   # exclude items surfaced within the last N picks
+```
+
+Use an **absolute path** (or a `~/...` path, which is expanded) for `corpus:`. An MCP client launches the server with an undefined working directory, so a relative path will not resolve reliably.
+
+**3. Register the server with your MCP client.** It speaks MCP over stdio and takes no arguments. With the Claude Code CLI:
+
+```sh
+claude mcp add florilegium -- florilegium
+```
+
+Or add it to a client's config directly:
+
+```json
+{
+  "mcpServers": {
+    "florilegium": {
+      "command": "florilegium"
+    }
+  }
+}
+```
+
+**4. Use it.** Once connected, the caller drives three tools:
+
+- `list_tags()` → the tags present in the corpus (here: `calm`, `dedication`, `focus`, `integrity`, `precision`), so you can narrow before choosing.
+- `list_candidates(tags?, limit?, exclude_recent?)` → a shortlist of items, with anything used within the recency window already excluded (`exclude_recent` defaults to `true`).
+- `record_use(id)` → mark the chosen item as used.
+
+The agent calls `list_candidates`, picks the one that fits, then calls `record_use` with its `id`. That id now drops out of `list_candidates` until `window` newer picks push it past the recency window. Uses are recorded to a history log under `$XDG_STATE_HOME/florilegium/`, so the rotation persists across sessions.
 
 ## License
 
