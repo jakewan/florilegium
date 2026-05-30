@@ -1,0 +1,25 @@
+# An example florilegium corpus. Copy it, point your config's `corpus:` at it,
+# and replace these items with your own. Each item needs a stable, unique `id`
+# and non-empty `text`; `attribution` and `tags` are optional.
+items:
+  - id: ggg-effective-mass
+    text: "Effective mass beats brute force. Land clean, not hard."
+    attribution: "Gennady Golovkin"
+    tags: [focus, precision]
+  - id: shokunin-no-corners
+    text: "The craftsman does not cut corners even where no one will look."
+    attribution: "Shokunin tradition"
+    tags: [dedication, integrity]
+  - id: kaizen-small-steps
+    text: "Improve a little every day; small steps compound into mastery."
+    attribution: "Kaizen principle"
+    tags: [focus, dedication]
+  - id: measure-twice
+    text: "Measure twice, cut once."
+    attribution: "Workshop proverb"
+    tags: [precision]
+  - id: still-water
+    text: "Still water reflects clearly; a calm mind judges well."
+    tags: [calm]
+  - id: name-only
+    text: "Plain text with no attribution and no tags is perfectly valid."
