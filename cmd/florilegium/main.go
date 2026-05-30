@@ -67,7 +67,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("history: %v", err)
 	}
-	srv := server.New(c, history.New(historyPath), cfg.RecencyWindow)
+	store := history.New(historyPath)
+
+	// Trim the log once per session so it can't grow without bound across the life
+	// of an install. retain stays well above the recency window (see Compact) so
+	// trimming never changes an eligibility result; the floor keeps a useful tail
+	// even for a tiny window. Unlike the loads above, a failed trim is non-fatal:
+	// maintenance must not block serving, and the diagnostic goes to stderr because
+	// stdout carries the JSON-RPC protocol stream.
+	retain := max(cfg.RecencyWindow*10, 1000)
+	if err := store.Compact(ctx, retain); err != nil {
+		log.Printf("history compaction: %v", err)
+	}
+
+	srv := server.New(c, store, cfg.RecencyWindow)
 
 	if err := run(ctx, srv, &mcp.StdioTransport{}); err != nil {
 		log.Fatalf("mcp server: %v", err)
