@@ -389,7 +389,7 @@ func TestCompactToleratesOverlongLine(t *testing.T) {
 	// 8 valid entries, a 128K junk line, then 4 more valid: 13 physical lines
 	// exceed 2*retain, so compaction rewrites; the junk line must not survive.
 	var b strings.Builder
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		fmt.Fprintf(&b, `{"id":"id%02d","at":"2026-05-30T00:00:00Z"}`+"\n", i)
 	}
 	b.WriteString(strings.Repeat("x", 128*1024) + "\n")
@@ -460,7 +460,7 @@ func readHistoryLines(t *testing.T, path string) []string {
 		t.Fatalf("reading history %s: %v", path, err)
 	}
 	var lines []string
-	for _, ln := range strings.Split(string(data), "\n") {
+	for ln := range strings.SplitSeq(string(data), "\n") {
 		if ln != "" {
 			lines = append(lines, ln)
 		}
