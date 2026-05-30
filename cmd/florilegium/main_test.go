@@ -5,9 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/jakewan/florilegium/internal/corpus"
+	"github.com/jakewan/florilegium/internal/history"
+	"github.com/jakewan/florilegium/internal/server"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -18,75 +22,22 @@ type nopWriteCloser struct{ io.Writer }
 
 func (nopWriteCloser) Close() error { return nil }
 
-// TestNewServerConstructs is the bootstrap smoke test: the server must
-// construct without panicking.
-func TestNewServerConstructs(t *testing.T) {
-	if newServer() == nil {
-		t.Fatal("newServer() returned nil")
-	}
-}
-
-// TestServerEnumeratesRegisteredTools connects a client to the server over an
-// in-memory transport and asserts the registered tools come back — the
-// acceptance criterion that a connected client can discover the tool contract.
-// Handlers are stubbed at this stage; only enumeration is exercised here.
-func TestServerEnumeratesRegisteredTools(t *testing.T) {
-	ctx := context.Background()
-	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-
-	serverSession, err := newServer().Connect(ctx, serverTransport, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	t.Cleanup(func() {
-		if cerr := serverSession.Close(); cerr != nil {
-			t.Errorf("server session close: %v", cerr)
-		}
-	})
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "0"}, nil)
-	clientSession, err := client.Connect(ctx, clientTransport, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	t.Cleanup(func() {
-		if cerr := clientSession.Close(); cerr != nil {
-			t.Errorf("client session close: %v", cerr)
-		}
-	})
-
-	res, err := clientSession.ListTools(ctx, nil)
-	if err != nil {
-		t.Fatalf("ListTools: %v", err)
-	}
-
-	got := make(map[string]bool, len(res.Tools))
-	for _, tool := range res.Tools {
-		got[tool.Name] = true
-	}
-
-	want := []string{"list_candidates", "record_use", "list_tags"}
-	if len(res.Tools) != len(want) {
-		t.Errorf("ListTools returned %d tools, want %d: %v", len(res.Tools), len(want), toolNames(res.Tools))
-	}
-	for _, name := range want {
-		if !got[name] {
-			t.Errorf("tool %q not enumerated; got %v", name, toolNames(res.Tools))
-		}
-	}
-}
-
 // TestRunReturnsNilOnPeerDisconnect asserts the server treats a client
 // disconnecting (the input stream reaching EOF with traffic in flight) as a
 // normal end-of-session, not an error — so the process exits 0 rather than
-// reporting routine shutdown as a failure. The pipe stands in for stdin.
+// reporting routine shutdown as a failure. The pipe stands in for stdin; the
+// server is built over a one-item corpus since the contract under test is the
+// shutdown classification, not tool behavior.
 func TestRunReturnsNilOnPeerDisconnect(t *testing.T) {
 	ctx := context.Background()
 	pr, pw := io.Pipe()
 	transport := &mcp.IOTransport{Reader: pr, Writer: nopWriteCloser{io.Discard}}
 
+	c := &corpus.Corpus{Items: []corpus.Item{{ID: "x", Text: "y"}}}
+	srv := server.New(c, history.New(filepath.Join(t.TempDir(), "history.jsonl")), 1)
+
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, transport) }()
+	go func() { done <- run(ctx, srv, transport) }()
 
 	handshake := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}` + "\n" +
 		`{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}` + "\n"
@@ -132,12 +83,4 @@ func TestIsCleanShutdown(t *testing.T) {
 			}
 		})
 	}
-}
-
-func toolNames(tools []*mcp.Tool) []string {
-	names := make([]string, len(tools))
-	for i, tool := range tools {
-		names[i] = tool.Name
-	}
-	return names
 }
