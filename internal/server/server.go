@@ -7,6 +7,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -85,6 +86,7 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 	d := &deps{corpus: c, store: store, window: window, byID: byID}
 
 	s := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: serverVersion}, nil)
+	s.AddReceivingMiddleware(tolerateNullArguments)
 
 	// list_candidates uses an explicit input schema so the true default for
 	// exclude_recent is published in the tool contract rather than buried in Go.
@@ -114,6 +116,24 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 	}, d.listTags)
 
 	return s
+}
+
+// tolerateNullArguments rewrites a tools/call whose arguments are the literal
+// JSON null to having no arguments at all, so a default-carrying input schema
+// behaves the same as an omitted arguments field. Without it, the SDK unmarshals
+// a null payload into a nil arguments map and then panics applying a schema
+// default into it (a jsonschema-go edge), which would tear down the session over
+// non-conforming-but-harmless input. Treating null as "no arguments" is the most
+// charitable reading: the caller passed nothing, so the documented defaults apply.
+func tolerateNullArguments(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		if call, ok := req.(*mcp.CallToolRequest); ok && call.Params != nil {
+			if bytes.Equal(bytes.TrimSpace(call.Params.Arguments), []byte("null")) {
+				call.Params.Arguments = nil
+			}
+		}
+		return next(ctx, method, req)
+	}
 }
 
 // listCandidates returns corpus items in file order, optionally narrowed to a

@@ -67,6 +67,27 @@ func TestListCandidates(t *testing.T) {
 	}
 }
 
+// TestListCandidatesToleratesNullArguments guards a robustness edge: a client
+// that sends the literal JSON null for arguments (rather than omitting the
+// field) must be treated as "no arguments" — applying the documented defaults —
+// not crash the session. The default-carrying input schema makes the SDK panic
+// on a null arguments payload without the server's normalizing middleware.
+func TestListCandidatesToleratesNullArguments(t *testing.T) {
+	ctx := context.Background()
+	cs := connect(t, New(fixtureCorpus(), newTestStore(t), 2))
+
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:      "list_candidates",
+		Arguments: json.RawMessage("null"),
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if got := candidateIDs(t, res); !equalIDs(got, []string{"a", "b", "c"}) {
+		t.Errorf("list_candidates(null args) = %v, want [a b c] (null treated as no args)", got)
+	}
+}
+
 // TestRecordUse pins the record path: a known id succeeds and echoes back, an
 // unknown or blank id fails with an actionable, caller-visible tool error
 // rather than a silently appended bad entry.
