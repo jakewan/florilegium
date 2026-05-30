@@ -88,6 +88,24 @@ func TestListCandidatesToleratesNullArguments(t *testing.T) {
 	}
 }
 
+// TestListCandidatesRejectsNegativeLimit pins that a negative limit is invalid
+// input rejected by the published schema bound, not silently treated as "no
+// cap". 0 and omitted already mean unlimited, so a negative maximum is
+// meaningless and must surface as an error rather than returning the whole
+// corpus.
+func TestListCandidatesRejectsNegativeLimit(t *testing.T) {
+	ctx := context.Background()
+	cs := connect(t, New(fixtureCorpus(), newTestStore(t), 2))
+
+	res, err := cs.CallTool(ctx, callParams("list_candidates", map[string]any{"limit": -1}))
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if !res.IsError {
+		t.Fatalf("list_candidates(limit=-1) = no error, want a validation error")
+	}
+}
+
 // TestRecordUse pins the record path: a known id succeeds and echoes back, an
 // unknown or blank id fails with an actionable, caller-visible tool error
 // rather than a silently appended bad entry.

@@ -99,6 +99,11 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 		panic(fmt.Sprintf("server: building list_candidates input schema: %v", err))
 	}
 	in.Properties["exclude_recent"].Default = json.RawMessage("true")
+	// A negative limit is invalid — 0 (or omitted) already means "no cap", so
+	// there is no meaning for a negative maximum. Publishing the bound lets the
+	// SDK reject it with a validation error rather than the handler silently
+	// treating it as no cap and returning the whole corpus.
+	in.Properties["limit"].Minimum = jsonschema.Ptr(0.0)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "list_candidates",
 		Description: "Return a shortlist of items (id, text, attribution, tags), excluding recently-used ones, for the caller to choose from.",
