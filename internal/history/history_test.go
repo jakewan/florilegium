@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -112,6 +113,31 @@ func TestRecordPersistsAcrossStores(t *testing.T) {
 	}
 	if want := []string{"b"}; !equal(got, want) {
 		t.Errorf("Eligible = %v, want %v (recorded use should persist)", got, want)
+	}
+}
+
+// TestEligibleSkipsOverlongLine covers reader robustness: a line longer than
+// bufio.Scanner's 64K cap must not fail the whole read. The over-long line is
+// skipped and a valid entry after it still counts toward recency.
+func TestEligibleSkipsOverlongLine(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "florilegium", "history.jsonl")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	// A 128K junk line exceeds bufio.Scanner's default token cap; a valid entry
+	// follows it and must still be read.
+	content := strings.Repeat("x", 128*1024) + "\n" +
+		`{"id":"a","at":"2026-05-30T00:00:00Z"}` + "\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	got, err := New(path).Eligible(context.Background(), []string{"a", "b"}, 1)
+	if err != nil {
+		t.Fatalf("Eligible: %v", err)
+	}
+	if want := []string{"b"}; !equal(got, want) {
+		t.Errorf("Eligible = %v, want %v (overlong line skipped, valid entry counted)", got, want)
 	}
 }
 
