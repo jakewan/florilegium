@@ -1,7 +1,7 @@
 // Package history is the durable memory of which corpus items were recently
 // surfaced, so the server can enforce the recency window across sessions. It is
 // a flat, append-only JSON-lines log keyed by item id: recording a use appends
-// one line, and eligibility is a tail-read of the most recent entries.
+// one line, and eligibility is decided from the most recent entries in the log.
 //
 // The flat-file shape is deliberate. The model is an ordered log and the only
 // query is "the last N picks," so a SQL engine and migrations would be weight
@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -43,7 +44,15 @@ func New(path string) *Store {
 // Record appends a use of id to the log, creating the parent directory and file
 // on first write. The entry is written as a single JSON line; an O_APPEND write
 // of one short line is atomic, so concurrent sessions do not corrupt each other.
+//
+// An empty or whitespace-only id is rejected: the reader skips such entries, so
+// persisting one would be a silent no-op that still grows the log and masks the
+// caller bug that produced it.
 func (s *Store) Record(_ context.Context, id string) error {
+	if strings.TrimSpace(id) == "" {
+		return fmt.Errorf("recording use: empty id")
+	}
+
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return fmt.Errorf("creating history dir: %w", err)
 	}

@@ -115,6 +115,24 @@ func TestRecordPersistsAcrossStores(t *testing.T) {
 	}
 }
 
+// TestRecordRejectsEmptyID covers that Record refuses an empty or
+// whitespace-only id rather than persisting an entry the reader would skip,
+// which would be a silent no-op that still grows the log and hides the caller
+// bug. No file should be written on rejection.
+func TestRecordRejectsEmptyID(t *testing.T) {
+	for _, id := range []string{"", "   "} {
+		t.Run("id="+id, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "florilegium", "history.jsonl")
+			if err := New(path).Record(context.Background(), id); err == nil {
+				t.Fatalf("Record(%q) = nil, want error", id)
+			}
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Errorf("history file exists after rejected Record, want absent")
+			}
+		})
+	}
+}
+
 // TestDefaultPath checks that the default history location follows the XDG state
 // layout, honoring XDG_STATE_HOME and falling back to ~/.local/state, so the
 // path matches the documented layout and stays test-isolable via t.Setenv.
