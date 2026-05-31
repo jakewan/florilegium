@@ -1,8 +1,9 @@
 // Package corpus loads and validates the user-supplied anthology: a YAML file
-// of tagged, attributed items. It guards the failure modes that would silently
-// corrupt selection later — duplicate or missing ids, empty text, malformed or
-// empty YAML — turning each into a specific, actionable error at load time so a
-// bad corpus fails up front rather than as wrong behavior downstream.
+// of tagged items with optional opaque metadata. It guards the failure modes
+// that would silently corrupt selection later — duplicate or missing ids, empty
+// text, malformed or empty YAML — turning each into a specific, actionable error
+// at load time so a bad corpus fails up front rather than as wrong behavior
+// downstream.
 package corpus
 
 import (
@@ -15,13 +16,16 @@ import (
 )
 
 // Item is one validated corpus entry. ID and Text are required; the history
-// store keys on ID, so it must be present and unique. Attribution and Tags are
-// optional metadata the caller may use to attribute or narrow a selection.
+// store keys on ID, so it must be present and unique. Tags and Meta are
+// optional. Tags is the categorical, queryable axis (list_tags, tag filtering).
+// Meta is an opaque key/value map the server carries and returns verbatim but
+// never interprets or queries — callers assign meaning to keys like
+// "attribution" or "source" by convention.
 type Item struct {
-	ID          string   `yaml:"id"`
-	Text        string   `yaml:"text"`
-	Attribution string   `yaml:"attribution"`
-	Tags        []string `yaml:"tags"`
+	ID   string            `yaml:"id"`
+	Text string            `yaml:"text"`
+	Meta map[string]string `yaml:"meta"`
+	Tags []string          `yaml:"tags"`
 }
 
 // Corpus is the validated, in-memory anthology, holding items in file order.

@@ -178,6 +178,57 @@ func TestListTags(t *testing.T) {
 	}
 }
 
+// TestListCandidatesCarriesMeta pins that an item's opaque meta map round-trips
+// through the list_candidates contract verbatim and multi-key, and that an item
+// with no meta omits the field entirely (omitempty) rather than emitting an
+// empty object.
+func TestListCandidatesCarriesMeta(t *testing.T) {
+	ctx := context.Background()
+	cs := connect(t, New(fixtureCorpus(), newTestStore(t), 2))
+
+	res, err := cs.CallTool(ctx, callParams("list_candidates", nil))
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if res.IsError {
+		t.Fatalf("list_candidates tool error: %s", errorText(res))
+	}
+
+	var out struct {
+		Candidates []struct {
+			ID   string            `json:"id"`
+			Meta map[string]string `json:"meta"`
+		} `json:"candidates"`
+	}
+	decodeResult(t, res.StructuredContent, &out)
+
+	byID := make(map[string]map[string]string, len(out.Candidates))
+	for _, c := range out.Candidates {
+		byID[c.ID] = c.Meta
+	}
+
+	if got := byID["a"]["attribution"]; got != "Author X" {
+		t.Errorf(`a meta["attribution"] = %q, want Author X`, got)
+	}
+	if got := byID["c"]; got["attribution"] != "Author Y" || got["source"] != "Essays" {
+		t.Errorf(`c meta = %v, want attribution="Author Y" source="Essays"`, got)
+	}
+	if len(byID["b"]) != 0 {
+		t.Errorf("b meta = %v, want none", byID["b"])
+	}
+
+	// Pin omitempty at the wire level: only a and c carry meta, so the marshaled
+	// structured content must name the meta key exactly twice — b must omit it
+	// rather than emit an empty object.
+	raw, err := json.Marshal(res.StructuredContent)
+	if err != nil {
+		t.Fatalf("marshal structured content: %v", err)
+	}
+	if n := strings.Count(string(raw), `"meta"`); n != 2 {
+		t.Errorf(`structured content names "meta" %d times, want 2 (b must omit it); raw=%s`, n, raw)
+	}
+}
+
 // decodeResult re-marshals a result's structured content and unmarshals it into
 // v. The client receives StructuredContent as a generic map, so a round-trip
 // through JSON is the version-stable way to land it in a typed value.

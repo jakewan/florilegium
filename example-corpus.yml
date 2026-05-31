@@ -1,25 +1,38 @@
 # An example florilegium corpus. Copy it, point your config's `corpus:` at it,
 # and replace these items with your own. Each item needs a stable, unique `id`
-# and non-empty `text`; `attribution` and `tags` are optional.
+# and non-empty `text`; `tags` and `meta` are optional.
+#
+# `tags` is the queryable axis (list_tags, tag filtering). `meta` is an opaque
+# key/value map the server stores and returns verbatim but never interprets or
+# queries — use conventional keys like `attribution`, `source`, or `kind` as you
+# see fit. meta values are strings: quote anything that looks numeric or boolean
+# (e.g. `year: "2017"`) so it round-trips as written rather than being coerced.
 items:
   - id: ggg-effective-mass
     text: "Effective mass beats brute force. Land clean, not hard."
-    attribution: "Gennady Golovkin"
+    meta:
+      attribution: "Gennady Golovkin"
+      kind: quotation
+      year: "2017"
     tags: [focus, precision]
   - id: shokunin-no-corners
     text: "The craftsman does not cut corners even where no one will look."
-    attribution: "Shokunin tradition"
+    meta:
+      attribution: "Shokunin tradition"
+      kind: aphorism
     tags: [dedication, integrity]
   - id: kaizen-small-steps
     text: "Improve a little every day; small steps compound into mastery."
-    attribution: "Kaizen principle"
+    meta:
+      attribution: "Kaizen principle"
     tags: [focus, dedication]
   - id: measure-twice
     text: "Measure twice, cut once."
-    attribution: "Workshop proverb"
+    meta:
+      attribution: "Workshop proverb"
     tags: [precision]
   - id: still-water
     text: "Still water reflects clearly; a calm mind judges well."
     tags: [calm]
   - id: name-only
-    text: "Plain text with no attribution and no tags is perfectly valid."
+    text: "Plain text with no meta and no tags is perfectly valid."
