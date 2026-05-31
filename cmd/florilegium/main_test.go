@@ -58,6 +58,43 @@ func TestRunReturnsNilOnPeerDisconnect(t *testing.T) {
 	}
 }
 
+// TestParseConfigFlag pins the --config flag parsing in isolation from the
+// global flag set: an unset flag yields the empty string (so resolution falls
+// through to FLORILEGIUM_CONFIG and the XDG default), an explicit value in
+// either accepted form round-trips, and an unknown flag is an error rather than
+// a silent no-op.
+func TestParseConfigFlag(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		want    string
+		wantErr bool
+	}{
+		{"no args", []string{}, "", false},
+		{"separate value", []string{"--config", "/x/config.yml"}, "/x/config.yml", false},
+		{"equals value", []string{"--config=/x/config.yml"}, "/x/config.yml", false},
+		{"single dash", []string{"-config", "/x/config.yml"}, "/x/config.yml", false},
+		{"unknown flag", []string{"--bogus"}, "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseConfigFlag(tt.args)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("parseConfigFlag(%q) error = nil, want error", tt.args)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parseConfigFlag(%q) unexpected error: %v", tt.args, err)
+			}
+			if got != tt.want {
+				t.Errorf("parseConfigFlag(%q) = %q, want %q", tt.args, got, tt.want)
+			}
+		})
+	}
+}
+
 // TestIsCleanShutdown pins which session-end errors count as routine shutdown
 // (swallowed) versus genuine failures (propagated). The server-closing wire
 // error is matched by its JSON-RPC code rather than message text so an SDK

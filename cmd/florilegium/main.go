@@ -7,8 +7,10 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"io"
 	"log"
+	"os"
 
 	"github.com/jakewan/florilegium/internal/config"
 	"github.com/jakewan/florilegium/internal/corpus"
@@ -49,13 +51,31 @@ func isCleanShutdown(err error) bool {
 	return errors.As(err, &wire) && wire.Code == codeServerClosing
 }
 
+// parseConfigFlag parses the --config flag from args, returning the path or ""
+// when unset. It uses a local FlagSet rather than the global flag.CommandLine
+// so the parsing is a pure function the test can drive directly. An unknown
+// flag is an error rather than a silent no-op.
+func parseConfigFlag(args []string) (string, error) {
+	fs := flag.NewFlagSet("florilegium", flag.ContinueOnError)
+	configPath := fs.String("config", "", "path to the config file (overrides $FLORILEGIUM_CONFIG and the XDG default)")
+	if err := fs.Parse(args); err != nil {
+		return "", err
+	}
+	return *configPath, nil
+}
+
 func main() {
 	ctx := context.Background()
+
+	configOverride, err := parseConfigFlag(os.Args[1:])
+	if err != nil {
+		log.Fatalf("flags: %v", err)
+	}
 
 	// Load config, corpus, and history before serving so any misconfiguration
 	// fails fast with a clear message instead of surfacing mid-session. Each
 	// failure is fatal here — main is the one place a fatal is acceptable.
-	cfg, err := config.Load(ctx)
+	cfg, err := config.Load(ctx, configOverride)
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
@@ -63,9 +83,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("corpus: %v", err)
 	}
-	historyPath, err := history.DefaultPath()
-	if err != nil {
-		log.Fatalf("history: %v", err)
+	// The config's history path wins when set, so an instance's rotation state
+	// travels with its config; otherwise fall back to the XDG default. This is
+	// where the default is resolved — config stays ignorant of the history
+	// package, the same way corpus defaults live here, not in config.
+	historyPath := cfg.History
+	if historyPath == "" {
+		historyPath, err = history.DefaultPath()
+		if err != nil {
+			log.Fatalf("history: %v", err)
+		}
 	}
 	store := history.New(historyPath)
 
