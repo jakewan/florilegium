@@ -68,7 +68,12 @@ func Load(_ context.Context, override string) (*Config, error) {
 		return nil, fmt.Errorf("parsing config %s: %w", path, err)
 	}
 
-	if f.Corpus == "" {
+	// Trim before the required-field check so a whitespace-only corpus is
+	// rejected like a missing one, and so the trimmed value is what gets
+	// expanded — surrounding whitespace can neither defeat ~ expansion nor leak
+	// into the resolved path.
+	corpusField := strings.TrimSpace(f.Corpus)
+	if corpusField == "" {
 		return nil, fmt.Errorf(`config %s: field "corpus" is required`, path)
 	}
 	// A missing recency.window and an explicit 0 both unmarshal to 0; both are
@@ -77,7 +82,7 @@ func Load(_ context.Context, override string) (*Config, error) {
 		return nil, fmt.Errorf(`config %s: field "recency.window" must be a positive integer, got %d`, path, f.Recency.Window)
 	}
 
-	corpus, err := expandTilde(f.Corpus, "corpus path")
+	corpus, err := expandTilde(corpusField, "corpus path")
 	if err != nil {
 		return nil, err
 	}

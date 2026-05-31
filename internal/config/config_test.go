@@ -114,6 +114,27 @@ func TestLoad(t *testing.T) {
 			},
 		},
 		{
+			name: "whitespace-only corpus is rejected like a missing one",
+			setup: func(t *testing.T, xdg, home string) (string, string) {
+				writeConfig(t, xdgConfig(xdg), "corpus: \"   \"\nrecency:\n  window: 5\n")
+				return "", ""
+			},
+			wantErr: `"corpus"`,
+		},
+		{
+			name: "corpus trims surrounding whitespace before expanding",
+			setup: func(t *testing.T, xdg, home string) (string, string) {
+				writeConfig(t, xdgConfig(xdg), "corpus: \"  ~/c.yml  \"\nrecency:\n  window: 5\n")
+				return "", ""
+			},
+			check: func(t *testing.T, cfg *Config, home string) {
+				want := filepath.Join(home, "c.yml")
+				if cfg.Corpus != want {
+					t.Errorf("Corpus = %q, want %q (trimmed then tilde expanded)", cfg.Corpus, want)
+				}
+			},
+		},
+		{
 			name: "flag override is read",
 			setup: func(t *testing.T, xdg, home string) (string, string) {
 				path := filepath.Join(t.TempDir(), "custom.yml")
