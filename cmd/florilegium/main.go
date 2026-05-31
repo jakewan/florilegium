@@ -69,6 +69,11 @@ func main() {
 
 	configOverride, err := parseConfigFlag(os.Args[1:])
 	if err != nil {
+		// flag.ErrHelp means -h/--help was requested; the flag package has
+		// already printed usage, so this is a normal exit rather than a failure.
+		if errors.Is(err, flag.ErrHelp) {
+			return
+		}
 		log.Fatalf("flags: %v", err)
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -92,6 +93,16 @@ func TestParseConfigFlag(t *testing.T) {
 				t.Errorf("parseConfigFlag(%q) = %q, want %q", tt.args, got, tt.want)
 			}
 		})
+	}
+}
+
+// TestParseConfigFlagHelp pins the contract main relies on to treat -h/--help
+// as a clean exit: parseConfigFlag surfaces flag.ErrHelp specifically (not a
+// generic error), so main can distinguish "help requested" from a real parse
+// failure and exit 0 rather than fatal.
+func TestParseConfigFlagHelp(t *testing.T) {
+	if _, err := parseConfigFlag([]string{"--help"}); !errors.Is(err, flag.ErrHelp) {
+		t.Errorf("parseConfigFlag([--help]) error = %v, want flag.ErrHelp", err)
 	}
 }
 
