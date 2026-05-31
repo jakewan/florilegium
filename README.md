@@ -21,7 +21,7 @@ This split is what makes it reusable. The first application is opening a code re
 
 A single binary speaking MCP over stdio. No daemon, no network service, no background process — it loads the corpus, reads and writes a small local history store, and exits when the session ends.
 
-- **Corpus** — a user-supplied YAML file of tagged, attributed items.
+- **Corpus** — a user-supplied YAML file of tagged items with optional opaque metadata.
 - **History** — a local store (under `$XDG_STATE_HOME/florilegium/`) tracking when each item was last surfaced, so recent picks can be excluded.
 - **Config** — a YAML file (under `$XDG_CONFIG_HOME/florilegium/`) pointing at the corpus and setting the recency window.
 
@@ -29,7 +29,7 @@ A single binary speaking MCP over stdio. No daemon, no network service, no backg
 
 | Tool | Purpose |
 | --- | --- |
-| `list_candidates(tags?, limit?, exclude_recent?)` | Return a shortlist of items (id, text, attribution, tags), excluding recently-used ones. The agent picks from these. |
+| `list_candidates(tags?, limit?, exclude_recent?)` | Return a shortlist of items (id, text, meta, tags), excluding recently-used ones. The agent picks from these. |
 | `record_use(id)` | Mark an item as used, so it drops out of rotation for the recency window. |
 | `list_tags()` | List the tags present in the corpus, so the agent can narrow before choosing. |
 
@@ -39,15 +39,20 @@ A single binary speaking MCP over stdio. No daemon, no network service, no backg
 items:
   - id: ggg-effective-mass        # stable id — history keys on this
     text: "Effective mass beats brute force. Land clean, not hard."
-    attribution: "Gennady Golovkin"
+    meta:                         # opaque key/value map, carried verbatim
+      attribution: "Gennady Golovkin"
+      source: "Boxing interviews"
     tags: [focus, precision]
   - id: shokunin-no-corners
     text: "The craftsman does not cut corners even where no one will look."
-    attribution: "Shokunin tradition"
+    meta:
+      attribution: "Shokunin tradition"
     tags: [dedication, integrity]
 ```
 
 Stable `id`s are required — the history store keys on them, so renaming or removing an item is a deliberate act, not an accident of editing the text.
+
+`tags` is the queryable axis (`list_tags`, tag filtering). `meta` is an opaque key/value map the server stores and returns verbatim but never interprets or queries — assign meaning to keys like `attribution`, `source`, or `kind` by your own convention. Both are optional. `meta` values are strings, so quote anything that looks numeric or boolean (e.g. `year: "2017"`) to keep it from being coerced.
 
 A ready-to-use [`example-corpus.yml`](example-corpus.yml) ships at the repo root; copy it as a starting point and replace the items with your own.
 

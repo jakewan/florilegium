@@ -46,13 +46,14 @@ type listCandidatesInput struct {
 	ExcludeRecent bool     `json:"exclude_recent,omitempty" jsonschema:"exclude items used within the recency window; defaults to true"`
 }
 
-// candidate is one shortlist entry. Attribution and Tags are omitted when empty
-// so the wire shape stays minimal for items that carry neither.
+// candidate is one shortlist entry. Meta and Tags are omitted when empty so the
+// wire shape stays minimal for items that carry neither. Meta is the item's
+// opaque metadata, returned verbatim for the caller to interpret.
 type candidate struct {
-	ID          string   `json:"id"`
-	Text        string   `json:"text"`
-	Attribution string   `json:"attribution,omitempty"`
-	Tags        []string `json:"tags,omitempty"`
+	ID   string            `json:"id"`
+	Text string            `json:"text"`
+	Meta map[string]string `json:"meta,omitempty"`
+	Tags []string          `json:"tags,omitempty"`
 }
 
 type listCandidatesOutput struct {
@@ -106,7 +107,7 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 	in.Properties["limit"].Minimum = jsonschema.Ptr(0.0)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "list_candidates",
-		Description: "Return a shortlist of items (id, text, attribution, tags), excluding recently-used ones, for the caller to choose from.",
+		Description: "Return a shortlist of items (id, text, meta, tags), excluding recently-used ones, for the caller to choose from.",
 		InputSchema: in,
 	}, d.listCandidates)
 
@@ -169,10 +170,10 @@ func (d *deps) listCandidates(ctx context.Context, _ *mcp.CallToolRequest, in li
 	for _, id := range ids {
 		it := d.byID[id]
 		out.Candidates = append(out.Candidates, candidate{
-			ID:          it.ID,
-			Text:        it.Text,
-			Attribution: it.Attribution,
-			Tags:        it.Tags,
+			ID:   it.ID,
+			Text: it.Text,
+			Meta: it.Meta,
+			Tags: it.Tags,
 		})
 	}
 	return nil, out, nil

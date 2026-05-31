@@ -13,12 +13,12 @@ import (
 
 // fixtureCorpus is a small, deterministic anthology used across the server
 // tests: ids are stable, tags overlap so OR-filtering has something to resolve,
-// and one item omits attribution so optional-field handling is exercised.
+// and one item omits meta so optional-field handling is exercised.
 func fixtureCorpus() *corpus.Corpus {
 	return &corpus.Corpus{Items: []corpus.Item{
-		{ID: "a", Text: "Alpha", Attribution: "Author X", Tags: []string{"focus"}},
+		{ID: "a", Text: "Alpha", Meta: map[string]string{"attribution": "Author X"}, Tags: []string{"focus"}},
 		{ID: "b", Text: "Beta", Tags: []string{"calm"}},
-		{ID: "c", Text: "Gamma", Attribution: "Author Y", Tags: []string{"focus", "calm"}},
+		{ID: "c", Text: "Gamma", Meta: map[string]string{"attribution": "Author Y", "source": "Essays"}, Tags: []string{"focus", "calm"}},
 	}}
 }
 

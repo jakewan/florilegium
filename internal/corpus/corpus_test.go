@@ -97,7 +97,9 @@ func TestLoad(t *testing.T) {
 				"items:\n" +
 				"  - id: ggg-effective-mass\n" +
 				"    text: \"Effective mass beats brute force.\"\n" +
-				"    attribution: \"Gennady Golovkin\"\n" +
+				"    meta:\n" +
+				"      attribution: \"Gennady Golovkin\"\n" +
+				"      source: \"Boxing wisdom\"\n" +
 				"    tags: [focus, precision]\n",
 			check: func(t *testing.T, c *Corpus) {
 				if len(c.Items) != 1 {
@@ -110,8 +112,11 @@ func TestLoad(t *testing.T) {
 				if it.Text != "Effective mass beats brute force." {
 					t.Errorf("Text = %q", it.Text)
 				}
-				if it.Attribution != "Gennady Golovkin" {
-					t.Errorf("Attribution = %q, want Gennady Golovkin", it.Attribution)
+				if it.Meta["attribution"] != "Gennady Golovkin" {
+					t.Errorf(`Meta["attribution"] = %q, want Gennady Golovkin`, it.Meta["attribution"])
+				}
+				if it.Meta["source"] != "Boxing wisdom" {
+					t.Errorf(`Meta["source"] = %q, want Boxing wisdom`, it.Meta["source"])
 				}
 				if len(it.Tags) != 2 || it.Tags[0] != "focus" || it.Tags[1] != "precision" {
 					t.Errorf("Tags = %v, want [focus precision]", it.Tags)
@@ -119,7 +124,7 @@ func TestLoad(t *testing.T) {
 			},
 		},
 		{
-			name:  "attribution and tags optional",
+			name:  "meta and tags optional",
 			write: true,
 			content: "" +
 				"items:\n" +
@@ -130,11 +135,60 @@ func TestLoad(t *testing.T) {
 					t.Fatalf("len(Items) = %d, want 1", len(c.Items))
 				}
 				it := c.Items[0]
-				if it.Attribution != "" {
-					t.Errorf("Attribution = %q, want empty", it.Attribution)
+				if len(it.Meta) != 0 {
+					t.Errorf("Meta = %v, want none", it.Meta)
 				}
 				if len(it.Tags) != 0 {
 					t.Errorf("Tags = %v, want none", it.Tags)
+				}
+			},
+		},
+		{
+			// Guards the value-type decision (map[string]string): values that look
+			// numeric or boolean must round-trip as the exact strings written, not
+			// be coerced. Quoting in YAML is the documented convention for such
+			// values; this pins that quoted values survive verbatim.
+			name:  "meta carries values verbatim",
+			write: true,
+			content: "" +
+				"items:\n" +
+				"  - id: versioned\n" +
+				"    text: a thought\n" +
+				"    meta:\n" +
+				"      version: \"1.20\"\n" +
+				"      published: \"no\"\n",
+			check: func(t *testing.T, c *Corpus) {
+				it := c.Items[0]
+				if it.Meta["version"] != "1.20" {
+					t.Errorf(`Meta["version"] = %q, want "1.20"`, it.Meta["version"])
+				}
+				if it.Meta["published"] != "no" {
+					t.Errorf(`Meta["published"] = %q, want "no"`, it.Meta["published"])
+				}
+			},
+		},
+		{
+			// Guards the migration promise: lenient YAML means a corpus still
+			// carrying the removed top-level attribution field loads cleanly (the
+			// stray field is ignored) rather than erroring, so users migrate at
+			// their own pace. This is why the loader does not enable KnownFields.
+			name:  "legacy attribution field is ignored",
+			write: true,
+			content: "" +
+				"items:\n" +
+				"  - id: legacy\n" +
+				"    text: still loads\n" +
+				"    attribution: \"Old Author\"\n",
+			check: func(t *testing.T, c *Corpus) {
+				if len(c.Items) != 1 {
+					t.Fatalf("len(Items) = %d, want 1", len(c.Items))
+				}
+				it := c.Items[0]
+				if it.ID != "legacy" || it.Text != "still loads" {
+					t.Errorf("item = {ID:%q Text:%q}, want {legacy still loads}", it.ID, it.Text)
+				}
+				if len(it.Meta) != 0 {
+					t.Errorf("Meta = %v, want none (legacy attribution must not populate meta)", it.Meta)
 				}
 			},
 		},
