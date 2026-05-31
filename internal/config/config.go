@@ -84,10 +84,12 @@ func Load(_ context.Context, override string) (*Config, error) {
 
 	// A blank history path is treated as absent: the field is optional, and an
 	// empty or whitespace-only value carries no isolation intent, so it resolves
-	// to "" and the caller applies the default location.
+	// to "" and the caller applies the default location. The trimmed value is
+	// what gets expanded, so surrounding whitespace can neither defeat ~
+	// expansion nor leak into the resolved path.
 	var history string
-	if strings.TrimSpace(f.History) != "" {
-		history, err = expandTilde(f.History, "history path")
+	if trimmed := strings.TrimSpace(f.History); trimmed != "" {
+		history, err = expandTilde(trimmed, "history path")
 		if err != nil {
 			return nil, err
 		}
