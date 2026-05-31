@@ -22,8 +22,8 @@ This split is what makes it reusable. The first application is opening a code re
 A single binary speaking MCP over stdio. No daemon, no network service, no background process — it loads the corpus, reads and writes a small local history store, and exits when the session ends.
 
 - **Corpus** — a user-supplied YAML file of tagged items with optional opaque metadata.
-- **History** — a local store (under `$XDG_STATE_HOME/florilegium/`) tracking when each item was last surfaced, so recent picks can be excluded.
-- **Config** — a YAML file (under `$XDG_CONFIG_HOME/florilegium/`) pointing at the corpus and setting the recency window.
+- **History** — a local store (by default under `$XDG_STATE_HOME/florilegium/`, or wherever the config's `history:` field points) tracking when each item was last surfaced, so recent picks can be excluded.
+- **Config** — a YAML file (by default under `$XDG_CONFIG_HOME/florilegium/`, or wherever `--config` / `$FLORILEGIUM_CONFIG` points) naming the corpus, setting the recency window, and optionally relocating the history store.
 
 ## MCP tools
 
@@ -61,9 +61,40 @@ A ready-to-use [`example-corpus.yml`](example-corpus.yml) ships at the repo root
 ```yaml
 # $XDG_CONFIG_HOME/florilegium/config.yml
 corpus: ~/.config/florilegium/corpus.yml
+history: ~/.local/state/florilegium/history.jsonl   # optional; see below
 recency:
   window: 30   # exclude items surfaced within the last N picks
 ```
+
+`history:` is optional — omit it and the store defaults to `$XDG_STATE_HOME/florilegium/history.jsonl`. Set it to give an instance its own rotation state (and see [Running multiple corpora](#running-multiple-corpora)). Use an **absolute path** (or a `~/...` path, which is expanded): an MCP client launches the server with an undefined working directory, so a relative path resolves unpredictably — and a relative `history:` would silently create a tree under whatever directory the client happened to choose.
+
+By default the config is read from `$XDG_CONFIG_HOME/florilegium/config.yml`. Two florilegium-specific knobs override that, in precedence order:
+
+1. `--config <path>` — a command-line flag.
+2. `$FLORILEGIUM_CONFIG` — an environment variable.
+
+Both point at the config file directly (a `~/...` path is expanded; use an absolute path for the reasons above) and let an instance be isolated by one florilegium-specific knob rather than by relocating the general-purpose `$XDG_CONFIG_HOME`.
+
+### Running multiple corpora
+
+florilegium serves one corpus per process; run several instances to serve several corpora. Give each instance its own config and its own history, so their recency windows stay independent:
+
+```jsonc
+{
+  "mcpServers": {
+    "quotes": {
+      "command": "florilegium",
+      "env": { "FLORILEGIUM_CONFIG": "/path/to/quotes/config.yml" }
+    },
+    "flashcards": {
+      "command": "florilegium",
+      "env": { "FLORILEGIUM_CONFIG": "/path/to/flashcards/config.yml" }
+    }
+  }
+}
+```
+
+Each config names its own `corpus:` and its own `history:`, so one knob per instance (`FLORILEGIUM_CONFIG`) fully isolates it. If two instances share a history log — for example, both omit `history:` and so fall back to the same default — they interleave into one recency window and can falsely exclude each other's items when ids collide, so point each at its own history.
 
 ## Installing
 
@@ -91,7 +122,7 @@ recency:
 
 Use an **absolute path** (or a `~/...` path, which is expanded) for `corpus:`. An MCP client launches the server with an undefined working directory, so a relative path will not resolve reliably.
 
-**3. Register the server with your MCP client.** It speaks MCP over stdio and takes no arguments. With the Claude Code CLI:
+**3. Register the server with your MCP client.** It speaks MCP over stdio and takes no arguments by default (an optional `--config` flag overrides the config path). With the Claude Code CLI:
 
 ```sh
 claude mcp add florilegium -- florilegium
