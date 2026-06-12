@@ -7,13 +7,24 @@
 package corpus
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
+
+// SupportedFormatVersion is the corpus format version this build understands. It
+// is bumped on a breaking change to the corpus shape; version 1 is the baseline
+// the first tagged release anchors. A corpus may omit the version field to accept
+// the baseline, or set it explicitly; a value naming any other version is
+// rejected so a corpus authored against an incompatible format fails loudly
+// rather than degrading into wrong selection behavior.
+const SupportedFormatVersion = 1
 
 // Item is one validated corpus entry. ID and Text are required; the history
 // store keys on ID, so it must be present and unique. Tags and Meta are
@@ -30,7 +41,12 @@ type Item struct {
 
 // Corpus is the validated, in-memory anthology, holding items in file order.
 type Corpus struct {
-	Items []Item `yaml:"items"`
+	// Version is the corpus format version. It is optional: an absent (zero)
+	// value means the baseline (SupportedFormatVersion). This is the top-level
+	// format axis and is unrelated to any "version" key a caller may place inside
+	// an item's opaque Meta map.
+	Version int    `yaml:"version"`
+	Items   []Item `yaml:"items"`
 }
 
 // Load reads, parses, and validates the corpus YAML at path. It takes a context
@@ -47,9 +63,35 @@ func Load(_ context.Context, path string) (*Corpus, error) {
 		return nil, fmt.Errorf("reading corpus %s: %w", path, err)
 	}
 
+	// KnownFields rejects unknown keys so a stale or mistyped field fails loudly
+	// instead of being silently dropped — the failure mode a versioned format
+	// exists to prevent. A document with no nodes (an empty or comment-only file)
+	// makes Decode return io.EOF; that is the empty-corpus case, checked before
+	// the generic parse wrap so it surfaces as the actionable "empty" message
+	// rather than an opaque parse error.
 	var c Corpus
-	if err = yaml.Unmarshal(data, &c); err != nil {
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	dec.KnownFields(true)
+	if err = dec.Decode(&c); err != nil && !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("parsing corpus %s: %w", path, err)
+	}
+
+	// A corpus is a single YAML document. A second Decode that does not report
+	// io.EOF means the file carries a trailing document, which the Decode above
+	// would otherwise drop silently — the same silent-data-loss this loader exists
+	// to prevent — so reject it rather than load a partial corpus. (A leading
+	// document-start marker is still one document and reaches EOF here.)
+	var extra Corpus
+	if err = dec.Decode(&extra); !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("corpus %s: contains more than one YAML document; a corpus must be a single document", path)
+	}
+
+	// Version incompatibility is reported ahead of emptiness: a corpus targeting a
+	// format this build cannot read is wrong at a more fundamental level than
+	// having no items, so name that first. A zero (absent) version means the
+	// baseline.
+	if c.Version != 0 && c.Version != SupportedFormatVersion {
+		return nil, fmt.Errorf("corpus %s: unsupported format version %d (this build supports version %d); upgrade florilegium or migrate the corpus", path, c.Version, SupportedFormatVersion)
 	}
 
 	if len(c.Items) == 0 {

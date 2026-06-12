@@ -168,29 +168,22 @@ func TestLoad(t *testing.T) {
 			},
 		},
 		{
-			// Guards the migration promise: lenient YAML means a corpus still
-			// carrying the removed top-level attribution field loads cleanly (the
-			// stray field is ignored) rather than erroring, so users migrate at
-			// their own pace. This is why the loader does not enable KnownFields.
-			name:  "legacy attribution field is ignored",
+			// Guards the loud-failure promise: with KnownFields enabled, a corpus
+			// still carrying the removed item-level attribution field is rejected
+			// with an actionable error rather than loading with the stray field
+			// silently dropped, so a stale corpus surfaces at load time instead of
+			// degrading into wrong behavior. "not found" is the strict-field signal
+			// (yaml.v3: "field attribution not found in type corpus.Item"); matching
+			// it — rather than the shared "parsing corpus" prefix — distinguishes a
+			// strict-field rejection from a plain syntax error.
+			name:  "legacy attribution field is rejected",
 			write: true,
 			content: "" +
 				"items:\n" +
 				"  - id: legacy\n" +
 				"    text: still loads\n" +
 				"    attribution: \"Old Author\"\n",
-			check: func(t *testing.T, c *Corpus) {
-				if len(c.Items) != 1 {
-					t.Fatalf("len(Items) = %d, want 1", len(c.Items))
-				}
-				it := c.Items[0]
-				if it.ID != "legacy" || it.Text != "still loads" {
-					t.Errorf("item = {ID:%q Text:%q}, want {legacy still loads}", it.ID, it.Text)
-				}
-				if len(it.Meta) != 0 {
-					t.Errorf("Meta = %v, want none (legacy attribution must not populate meta)", it.Meta)
-				}
-			},
+			wantErr: "not found",
 		},
 		{
 			name:  "preserves file order",
@@ -214,6 +207,81 @@ func TestLoad(t *testing.T) {
 					}
 				}
 			},
+		},
+		{
+			// An explicit baseline version loads like any other corpus — this case
+			// is also the guard that Version is a real, correctly-tagged struct
+			// field: were it missing, KnownFields would reject "version" as unknown.
+			name:  "explicit baseline version loads",
+			write: true,
+			content: "" +
+				"version: 1\n" +
+				"items:\n" +
+				"  - id: only\n" +
+				"    text: a thought\n",
+			check: func(t *testing.T, c *Corpus) {
+				if len(c.Items) != 1 || c.Items[0].ID != "only" {
+					t.Fatalf("Items = %+v, want one item id=only", c.Items)
+				}
+			},
+		},
+		{
+			// Absent version defaults to the baseline, so existing unversioned
+			// corpora keep loading.
+			name:  "absent version loads as baseline",
+			write: true,
+			content: "" +
+				"items:\n" +
+				"  - id: only\n" +
+				"    text: a thought\n",
+			check: func(t *testing.T, c *Corpus) {
+				if len(c.Items) != 1 || c.Items[0].ID != "only" {
+					t.Fatalf("Items = %+v, want one item id=only", c.Items)
+				}
+			},
+		},
+		{
+			// A version the build does not support fails loudly. Matching the custom
+			// message — not a generic field error — proves the version gate ran,
+			// rather than a KnownFields rejection masquerading as version validation.
+			name:  "unsupported version is rejected",
+			write: true,
+			content: "" +
+				"version: 2\n" +
+				"items:\n" +
+				"  - id: only\n" +
+				"    text: a thought\n",
+			wantErr: "unsupported format version",
+		},
+		{
+			// The top-level strict-field axis (the attribution case covers the
+			// item-level axis): an otherwise-valid corpus with one stray top-level
+			// key is rejected, so a typo or stale field fails loudly.
+			name:  "stray top-level key is rejected",
+			write: true,
+			content: "" +
+				"bogus: x\n" +
+				"items:\n" +
+				"  - id: only\n" +
+				"    text: a thought\n",
+			wantErr: "not found",
+		},
+		{
+			// A corpus is a single YAML document. A multi-document file (--- between
+			// documents) would otherwise decode only the first and silently drop the
+			// rest — the silent-data-loss failure this loader exists to prevent — so
+			// it is rejected loudly.
+			name:  "multiple documents are rejected",
+			write: true,
+			content: "" +
+				"items:\n" +
+				"  - id: a\n" +
+				"    text: one\n" +
+				"---\n" +
+				"items:\n" +
+				"  - id: b\n" +
+				"    text: two\n",
+			wantErr: "more than one YAML document",
 		},
 	}
 

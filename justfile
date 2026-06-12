@@ -1,7 +1,14 @@
+# Version stamped into the binary. No --always: on a tag-less repo git describe
+# would otherwise succeed with a bare commit SHA and the `|| echo dev` fallback
+# would never fire. Without it, describe fails cleanly when no tag exists and the
+# fallback yields "dev". So: tag-less -> dev; clean tagged checkout -> v0.1.0;
+# later commits -> v0.1.0-N-gSHA; dirty tree -> a -dirty suffix.
+version := `git describe --tags --dirty 2>/dev/null || echo dev`
+
 # Build the binary
 build:
     @mkdir -p bin
-    go build -o bin/florilegium ./cmd/florilegium
+    go build -ldflags "-X github.com/jakewan/florilegium/internal/server.serverVersion={{version}}" -o bin/florilegium ./cmd/florilegium
 
 # Install the binary to ~/.local/bin (atomic cp+mv — survives "text file busy")
 install: build
