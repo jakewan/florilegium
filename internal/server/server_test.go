@@ -99,6 +99,23 @@ func errorText(res *mcp.CallToolResult) string {
 	return ""
 }
 
+// TestServerReportsIdentity pins that the server's name and version reach the
+// client through the initialize handshake. The version is the package-level
+// serverVersion (the "dev" default under plain go test; overridden at build time
+// via -ldflags), so asserting against the variable guards the wiring — that
+// whatever value the build stamps in is the value a client sees — independent of
+// the value itself.
+func TestServerReportsIdentity(t *testing.T) {
+	cs := connect(t, New(fixtureCorpus(), newTestStore(t), 2))
+	info := cs.InitializeResult().ServerInfo
+	if info.Name != serverName {
+		t.Errorf("ServerInfo.Name = %q, want %q", info.Name, serverName)
+	}
+	if info.Version != serverVersion {
+		t.Errorf("ServerInfo.Version = %q, want %q", info.Version, serverVersion)
+	}
+}
+
 // TestAcceptanceListRecordList is the outside-in acceptance test for the whole
 // contract: a client gets a shortlist, reports a pick, and the picked id drops
 // out of the next shortlist within the recency window — the core promise of the

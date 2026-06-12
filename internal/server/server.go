@@ -21,10 +21,14 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const (
-	serverName    = "florilegium"
-	serverVersion = "0.1.0"
-)
+const serverName = "florilegium"
+
+// serverVersion is the release identity reported to MCP clients in the
+// initialize handshake. It is overridden at build time via
+// -ldflags "-X .../internal/server.serverVersion=<version>" (see the justfile,
+// which derives the value from git describe); the "dev" default marks a build
+// produced without that injection (plain go build, go test, go install).
+var serverVersion = "dev"
 
 // deps carries what the handlers need: the corpus, the recency store, the
 // window size, and a by-id index built once at construction so candidate
