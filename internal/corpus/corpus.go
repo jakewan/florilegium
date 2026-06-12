@@ -76,6 +76,16 @@ func Load(_ context.Context, path string) (*Corpus, error) {
 		return nil, fmt.Errorf("parsing corpus %s: %w", path, err)
 	}
 
+	// A corpus is a single YAML document. A second Decode that does not report
+	// io.EOF means the file carries a trailing document, which the Decode above
+	// would otherwise drop silently — the same silent-data-loss this loader exists
+	// to prevent — so reject it rather than load a partial corpus. (A leading
+	// document-start marker is still one document and reaches EOF here.)
+	var extra Corpus
+	if err = dec.Decode(&extra); !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("corpus %s: contains more than one YAML document; a corpus must be a single document", path)
+	}
+
 	// Version incompatibility is reported ahead of emptiness: a corpus targeting a
 	// format this build cannot read is wrong at a more fundamental level than
 	// having no items, so name that first. A zero (absent) version means the

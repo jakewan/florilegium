@@ -266,6 +266,23 @@ func TestLoad(t *testing.T) {
 				"    text: a thought\n",
 			wantErr: "not found",
 		},
+		{
+			// A corpus is a single YAML document. A multi-document file (--- between
+			// documents) would otherwise decode only the first and silently drop the
+			// rest — the silent-data-loss failure this loader exists to prevent — so
+			// it is rejected loudly.
+			name:  "multiple documents are rejected",
+			write: true,
+			content: "" +
+				"items:\n" +
+				"  - id: a\n" +
+				"    text: one\n" +
+				"---\n" +
+				"items:\n" +
+				"  - id: b\n" +
+				"    text: two\n",
+			wantErr: "more than one YAML document",
+		},
 	}
 
 	for _, tt := range tests {
