@@ -3,6 +3,9 @@
 /florilegium
 coverage.out
 
+# GoReleaser build output (snapshot/release)
+/dist/
+
 # IDE
 .idea/
 .vscode/

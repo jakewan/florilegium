@@ -1,5 +1,7 @@
 [tools]
+git-cliff = "2.13.1"
 go = "1.25"
 golangci-lint = "2.11.3"
+goreleaser = "2.16.0"
 just = "1.38.0"
 lefthook = "2.1.4"
