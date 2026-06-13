@@ -98,13 +98,21 @@ Each config names its own `corpus:` and its own `history:`, so one knob per inst
 
 ## Installing
 
-Following the sibling tooling pattern:
+**Prebuilt binary** — download the archive for your platform from the [latest release](https://github.com/jakewan/florilegium/releases/latest), extract it, and put `florilegium` on your `PATH`. Each release ships cross-compiled binaries, a cosign-signed `checksums.txt`, and SLSA build provenance; exact verification commands accompany the release notes.
+
+**With `go install`:**
+
+```sh
+go install github.com/jakewan/florilegium/cmd/florilegium@latest
+```
+
+**From source** (the sibling tooling pattern):
 
 ```sh
 just install   # builds and installs the binary to ~/.local/bin
 ```
 
-Ensure `~/.local/bin` is on your `PATH`.
+Ensure the install directory (`~/.local/bin`, or `$(go env GOPATH)/bin` for `go install`) is on your `PATH`.
 
 ## Getting started
 
