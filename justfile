@@ -5,6 +5,10 @@
 # later commits -> v0.1.0-N-gSHA; dirty tree -> a -dirty suffix.
 version := `git describe --tags --dirty 2>/dev/null || echo dev`
 
+# The -ldflags below injects internal/server.serverVersion — the SAME symbol
+# .goreleaser.yaml injects at release time. A rename of that symbol must be
+# changed in BOTH places, or one path silently reverts to "dev".
+
 # Build the binary
 build:
     @mkdir -p bin
@@ -45,9 +49,24 @@ tidy:
 verify:
     go mod verify
 
+# Preview the changelog git-cliff would generate from unreleased commits, to
+# review/polish before a release. See the ritual in .claude/rules/pr-conventions.md.
+
+# Preview the unreleased changelog section
+changelog:
+    git cliff --unreleased
+
+# --snapshot skips cosign signing and never runs provenance (CI-only,
+# OIDC-bound), so this proves the build, not the hardening.
+
+# Validate release config and dry-run a snapshot build (mirrors the CI gate)
+release-check:
+    goreleaser check
+    goreleaser build --snapshot --single-target --clean
+
 # Clean build artifacts
 clean:
-    rm -rf bin/
+    rm -rf bin/ dist/
     rm -f coverage.out
 
 # Install git hooks via lefthook

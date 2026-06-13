@@ -26,9 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       go: ${{ steps.filter.outputs.go }}
+      release_config: ${{ steps.filter.outputs.release_config }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
           filters: |
@@ -38,17 +39,27 @@ jobs:
               - 'go.sum'
               - '.golangci.yml'
               - '.github/workflows/ci.yml'
+            # Includes Go sources/go.mod so a rename of the serverVersion symbol
+            # or the cmd/ path (which the snapshot build resolves) trips the gate,
+            # not just edits to the release config files themselves.
+            release_config:
+              - '**/*.go'
+              - 'go.mod'
+              - '.goreleaser.yaml'
+              - 'cliff.toml'
+              - '.github/workflows/release.yml'
+              - '.github/workflows/ci.yml'
 
   test:
     needs: detect-changes
     if: needs.detect-changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       # go-version-file keeps the Go version single-sourced in go.mod;
       # setup-go@v6 enables module caching by default.
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
 
@@ -61,14 +72,41 @@ jobs:
     if: needs.detect-changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
 
       # golangci-lint-action needs the version explicitly; this is the one
       # intentional duplication of the pin in mise.toml.
-      - uses: golangci/golangci-lint-action@v9
+      - uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9
         with:
           version: v2.11.3
+
+  # Validate the release config on PRs that could affect it. `goreleaser check`
+  # is only a syntax linter, so a single-target snapshot *build* follows — it
+  # resolves the ldflags serverVersion symbol and so catches a rename that
+  # `check` alone would pass and a real release would fail. Make this a required
+  # check so a red result blocks (the `if:` skip-passing covers unrelated PRs,
+  # like the go jobs).
+  release-config:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.release_config == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: go.mod
+
+      # Pinned to the v2 line via the action's documented range form.
+      - uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
+        with:
+          install-only: true
+          version: "~> v2"
+
+      - run: goreleaser check
+
+      - run: goreleaser build --snapshot --single-target --clean

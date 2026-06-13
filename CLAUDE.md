@@ -42,7 +42,11 @@ just fmt         # gofmt -w .
 just tidy        # go mod tidy
 just verify      # go mod verify
 just install     # build and install to ~/.local/bin
+just changelog     # preview the unreleased changelog (git-cliff)
+just release-check # validate release config + snapshot build (goreleaser)
 ```
+
+Releases are cut by pushing a `v*` tag, which triggers `.github/workflows/release.yml` (GoReleaser: cross-compiled binaries, cosign-signed checksums, SLSA provenance) with notes drawn from `CHANGELOG.md`. The changelog is generated from Conventional Commits by git-cliff at release time — see the release ritual in `.claude/rules/pr-conventions.md`.
 
 Formatting is enforced by golangci-lint's configured formatters (`gofmt`, `goimports`) — there is no separate format-check step. The `lefthook` hooks run formatting on commit and lint/test on push.
 
