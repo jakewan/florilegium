@@ -29,7 +29,7 @@ jobs:
       release_config: ${{ steps.filter.outputs.release_config }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
           filters: |
@@ -80,7 +80,7 @@ jobs:
 
       # golangci-lint-action needs the version explicitly; this is the one
       # intentional duplication of the pin in mise.toml.
-      - uses: golangci/golangci-lint-action@v9
+      - uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9
         with:
           version: v2.11.3
 
