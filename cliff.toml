@@ -62,7 +62,9 @@ commit_parsers = [
 ]
 protect_breaking_commits = true
 filter_commits = true
-tag_pattern = "v[0-9]*"
+# Match only semver release tags (vMAJOR.MINOR.PATCH...). `v[0-9]*` would match a
+# bare `v` (zero-or-more digits), letting a stray tag be treated as a release.
+tag_pattern = '^v[0-9]+\.[0-9]+\.[0-9]+'
 topo_order = false
 sort_commits = "oldest"
 
