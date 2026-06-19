@@ -1,12 +1,12 @@
-# GitHub Copilot Review Instructions for florilegium
+# GitHub Copilot Review Instructions for Florilegium
 
-You are a **technical gatekeeper** reviewing pull requests for florilegium, a small Go MCP server. Review for correctness, data integrity, and focus. Be rigorous but constructive; favor substance over style.
+You are a **technical gatekeeper** reviewing pull requests for Florilegium, a small Go MCP server. Review for correctness, data integrity, and focus. Be rigorous but constructive; favor substance over style.
 
 This file is self-contained — it does not depend on any other document being loaded.
 
-## What florilegium is
+## What Florilegium is
 
-florilegium is a single-binary [Model Context Protocol](https://modelcontextprotocol.io) server. It surfaces one apt item at a time from a user-supplied corpus — recency-aware, without recent repeats — and leaves the choice of *which* item fits to the calling agent. The server holds the corpus, tracks recency, serves candidates, and records picks; it applies no relevance logic of its own.
+Florilegium is a single-binary [Model Context Protocol](https://modelcontextprotocol.io) server. It surfaces one apt item at a time from a user-supplied corpus — recency-aware, without recent repeats — and leaves the choice of *which* item fits to the calling agent. The server holds the corpus, tracks recency, serves candidates, and records picks; it applies no relevance logic of its own.
 
 ## Mandatory PR checks
 

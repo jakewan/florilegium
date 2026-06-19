@@ -1,4 +1,4 @@
-# florilegium
+# Florilegium
 
 A general-purpose [MCP](https://modelcontextprotocol.io) server that surfaces one apt item at a time from a user-supplied corpus — recency-aware, without recent repeats — and leaves the question of *which* item fits to the calling agent.
 
@@ -13,7 +13,7 @@ Picking a relevant quote, snippet, or passage is two jobs that want different ow
 - **Mechanism** — hold the corpus, remember what was used recently, serve candidates, record picks. Deterministic, stateful, boring. A good fit for a small program.
 - **Judgment** — decide which candidate actually *fits* the moment. Semantic, contextual. A good fit for the LLM that has the context.
 
-florilegium does only the first job. It never decides relevance — it hands the agent a shortlist (optionally narrowed by tag), excluding anything used recently, and lets the agent choose. The server has no idea what the items are *for*; that framing lives entirely in the caller.
+Florilegium does only the first job. It never decides relevance — it hands the agent a shortlist (optionally narrowed by tag), excluding anything used recently, and lets the agent choose. The server has no idea what the items are *for*; that framing lives entirely in the caller.
 
 This split is what makes it reusable. The first application is opening a code review with a fitting epigraph, but the same primitive serves daily-quote widgets, flashcard rotation, prompt-snippet libraries — anything shaped like "surface a fitting one from many, without repeating myself."
 
@@ -68,16 +68,16 @@ recency:
 
 `history:` is optional — omit it and the store defaults to `$XDG_STATE_HOME/florilegium/history.jsonl`. Set it to give an instance its own rotation state (and see [Running multiple corpora](#running-multiple-corpora)). Use an **absolute path** (or a `~/...` path, which is expanded): an MCP client launches the server with an undefined working directory, so a relative path resolves unpredictably — and a relative `history:` would silently create a tree under whatever directory the client happened to choose.
 
-By default the config is read from `$XDG_CONFIG_HOME/florilegium/config.yml`. Two florilegium-specific knobs override that, in precedence order:
+By default the config is read from `$XDG_CONFIG_HOME/florilegium/config.yml`. Two Florilegium-specific knobs override that, in precedence order:
 
 1. `--config <path>` — a command-line flag.
 2. `$FLORILEGIUM_CONFIG` — an environment variable.
 
-Both point at the config file directly (a `~/...` path is expanded; use an absolute path for the reasons above) and let an instance be isolated by one florilegium-specific knob rather than by relocating the general-purpose `$XDG_CONFIG_HOME`.
+Both point at the config file directly (a `~/...` path is expanded; use an absolute path for the reasons above) and let an instance be isolated by one Florilegium-specific knob rather than by relocating the general-purpose `$XDG_CONFIG_HOME`.
 
 ### Running multiple corpora
 
-florilegium serves one corpus per process; run several instances to serve several corpora. Give each instance its own config and its own history, so their recency windows stay independent:
+Florilegium serves one corpus per process; run several instances to serve several corpora. Give each instance its own config and its own history, so their recency windows stay independent:
 
 ```jsonc
 {

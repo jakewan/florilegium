@@ -1,8 +1,8 @@
-# florilegium — Agent Guide
+# Florilegium — Agent Guide
 
 This file orients an AI agent (or a new contributor) working in this repository. It is self-contained: everything needed to work here is described below or in the linked in-repo files.
 
-## What florilegium is
+## What Florilegium is
 
 A general-purpose [MCP](https://modelcontextprotocol.io) server that surfaces one apt item at a time from a user-supplied corpus — recency-aware, without recent repeats — and leaves the question of *which* item fits to the calling agent.
 

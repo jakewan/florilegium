@@ -1,4 +1,4 @@
-# Contributing to florilegium
+# Contributing to Florilegium
 
 ## Issues
 
@@ -13,9 +13,21 @@ Focus on describing the problem clearly. Solution ideas are welcome as supplemen
 
 ## Scope
 
-florilegium is a single-purpose MCP server: it surfaces one apt item at a time from a user-supplied corpus — recency-aware, without recent repeats — and leaves the question of *which* item fits to the calling agent. It does no relevance ranking of its own.
+Florilegium is a single-purpose MCP server: it surfaces one apt item at a time from a user-supplied corpus — recency-aware, without recent repeats — and leaves the question of *which* item fits to the calling agent. It does no relevance ranking of its own.
 
 Contributions should stay within this focused scope. If you're unsure whether something fits, open an issue describing the problem first.
+
+## Naming and capitalization
+
+The project name carries three registers; keep them distinct so capitalization doesn't drift across the docs:
+
+| Register | Form | Where it appears |
+| --- | --- | --- |
+| **Brand** (proper noun) | `Florilegium` (Title-Case) | Prose, sentence-leading mentions, headings, and the MCP display title clients show |
+| **Latin common noun** | *florilegium* (lowercase, italic) | When referring to the *word* or the anthology concept it names, not the product (e.g. the README's etymology gloss) |
+| **Machine identifier** | `florilegium` (lowercase) | The binary, the Go package and import path (`github.com/jakewan/florilegium`), the `mcpServers` config key, `$FLORILEGIUM_CONFIG`, config and state paths, the `log` prefix, and the registry name |
+
+In code, this is the `serverName` (lowercase identifier) / `serverTitle` (Title-Case display name) split registered on the MCP server's `Implementation`.
 
 ## Development
 
