@@ -21,7 +21,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const serverName = "florilegium"
+// serverName is the programmatic MCP identifier — lowercase, matching the
+// binary, the Go package, and the mcpServers config key. serverTitle is the
+// human-readable display name an MCP client shows when it has one. The split
+// mirrors the MCP registry's name/title convention: a stable machine identifier
+// paired with a Title-Case brand. ("Florilegium" the brand is distinct from
+// *florilegium* the common noun the project is named for, which stays lowercase.)
+const (
+	serverName  = "florilegium"
+	serverTitle = "Florilegium"
+)
 
 // serverVersion is the release identity reported to MCP clients in the
 // initialize handshake. It is overridden at build time via
@@ -90,7 +99,7 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 	}
 	d := &deps{corpus: c, store: store, window: window, byID: byID}
 
-	s := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: serverVersion}, nil)
+	s := mcp.NewServer(&mcp.Implementation{Name: serverName, Title: serverTitle, Version: serverVersion}, nil)
 	s.AddReceivingMiddleware(tolerateNullArguments)
 
 	// list_candidates uses an explicit input schema so the true default for
