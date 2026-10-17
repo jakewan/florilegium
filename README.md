@@ -33,7 +33,7 @@ A single binary speaking MCP over stdio. No daemon, no network service, no backg
 | `record_use(id)` | Mark an item as used, so it drops out of rotation for the recency window. |
 | `list_tags()` | List the tags present in the corpus, so the agent can narrow before choosing. |
 
-`list_candidates` and `list_tags` declare themselves read-only (`readOnlyHint`), so a client that holds writes behind a prompt or a planning mode can tell them apart from writes. `record_use` is a write and carries no such annotation.
+`list_candidates` and `list_tags` declare themselves read-only (`readOnlyHint`) and closed-world (`openWorldHint: false`, since they touch only local state), so a client that gates writes, such as Claude Code's plan mode, can tell them apart from writes. `record_use` is a write and carries no such annotation.
 
 ## Corpus format
 

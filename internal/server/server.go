@@ -139,10 +139,12 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 	return s
 }
 
-// readsLocally is the annotation set for the tools that only read the local
-// corpus and history. Clients that gate writes treat a tool without readOnlyHint
-// as a write, so leaving it off would put an approval prompt in front of every
-// read. record_use stays unannotated: it is a write.
+// readsLocally is the annotation set for the tools that only read local state
+// (the corpus, and for list_candidates the history). MCP's readOnlyHint
+// defaults to false (go-sdk mcp.ToolAnnotations), so a client that gates writes
+// — Claude Code's plan mode, for one — treats an unannotated tool as a write and
+// prompts before every read. Were that default to flip, the annotation would be
+// redundant rather than wrong. record_use stays unannotated: it is a write.
 func readsLocally() *mcp.ToolAnnotations {
 	return &mcp.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: jsonschema.Ptr(false)}
 }

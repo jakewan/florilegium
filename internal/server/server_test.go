@@ -121,10 +121,11 @@ func TestServerReportsIdentity(t *testing.T) {
 }
 
 // TestToolsDeclareWhetherTheyAreReadOnly pins the read/write split clients see.
-// A client that gates writes — a read-only planning mode, an approval prompt —
-// treats a tool without readOnlyHint as a write, so an unannotated read prompts
-// on every call; a write wrongly marked read-only would slip past that gate.
-// Every exposed tool must appear here, so a new one is classified on purpose.
+// A client that gates writes — Claude Code's plan mode, for one — treats a tool
+// without readOnlyHint as a write, so an unannotated read prompts on every
+// call; a write wrongly marked read-only would slip past that gate. The exposed
+// tools and this classification must match exactly, so a new tool is
+// classified on purpose and a removed one leaves no stale entry.
 func TestToolsDeclareWhetherTheyAreReadOnly(t *testing.T) {
 	cs := connect(t, New(fixtureCorpus(), newTestStore(t), 2))
 	res, err := cs.ListTools(context.Background(), nil)
@@ -138,7 +139,9 @@ func TestToolsDeclareWhetherTheyAreReadOnly(t *testing.T) {
 		"record_use":      false,
 	}
 
+	seen := make(map[string]bool, len(res.Tools))
 	for _, tool := range res.Tools {
+		seen[tool.Name] = true
 		want, ok := wantReadOnly[tool.Name]
 		if !ok {
 			t.Errorf("tool %q is not classified as read-only or write", tool.Name)
@@ -150,7 +153,12 @@ func TestToolsDeclareWhetherTheyAreReadOnly(t *testing.T) {
 			continue
 		}
 		if want && (tool.Annotations.OpenWorldHint == nil || *tool.Annotations.OpenWorldHint) {
-			t.Errorf("tool %q openWorldHint unset or true, want false: it reads only the local corpus and history", tool.Name)
+			t.Errorf("tool %q openWorldHint unset or true, want false: it touches only local state", tool.Name)
+		}
+	}
+	for name := range wantReadOnly {
+		if !seen[name] {
+			t.Errorf("tool %q is classified but not exposed", name)
 		}
 	}
 }
