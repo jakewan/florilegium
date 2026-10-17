@@ -122,6 +122,7 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 		Name:        "list_candidates",
 		Description: "Return a shortlist of items (id, text, meta, tags), excluding recently-used ones, for the caller to choose from.",
 		InputSchema: in,
+		Annotations: readsLocally(),
 	}, d.listCandidates)
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -132,9 +133,18 @@ func New(c *corpus.Corpus, store *history.Store, window int) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "list_tags",
 		Description: "List the tags present in the corpus so the caller can narrow before choosing.",
+		Annotations: readsLocally(),
 	}, d.listTags)
 
 	return s
+}
+
+// readsLocally is the annotation set for the tools that only read the local
+// corpus and history. Clients that gate writes treat a tool without readOnlyHint
+// as a write, so leaving it off would put an approval prompt in front of every
+// read. record_use stays unannotated: it is a write.
+func readsLocally() *mcp.ToolAnnotations {
+	return &mcp.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: jsonschema.Ptr(false)}
 }
 
 // tolerateNullArguments rewrites a tools/call whose arguments are the literal
