@@ -21,8 +21,8 @@ Understand these before flagging anything, to avoid false positives:
 
 - **Single binary, daemonless.** No gRPC, no daemon, no network service. Don't suggest service/daemon architecture.
 - **MCP over stdio is JSON-RPC.** stdout carries the protocol stream and nothing else. Writing non-protocol output to stdout (e.g. `fmt.Println`, `fmt.Printf` to stdout) is a real bug — it corrupts the stream. Diagnostics belong on stderr (`log`). **This is the highest-priority correctness check.**
-- **Exiting on stdin EOF is normal shutdown.** A `log.Fatal`/`log.Fatalf` reached when the stdio transport returns on EOF is intended behavior, not a bug.
-- **The storage engine is deliberately undecided.** Whether history is SQLite or a flat file is an open design decision. Do not push one over the other.
+- **Exiting on stdin EOF is normal shutdown.** `run` treats EOF and the SDK's server-closing error as a clean end of session and returns nil. A change that makes EOF fatal or reports it as an error is a regression.
+- **History is a flat, append-only JSON-lines file.** The storage engine is settled; don't suggest SQLite or another engine. When two sessions share a log, an append that races the other's startup trim can be lost. That is an accepted tradeoff for a daemonless tool, not a bug.
 
 ## What to review
 
