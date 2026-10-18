@@ -11,24 +11,26 @@ The design splits two jobs that want different owners:
 - **Mechanism** (this server's job): hold the corpus, remember what was used recently, serve candidates, record picks. Deterministic, stateful.
 - **Judgment** (the caller's job): decide which candidate actually fits the moment. The server applies no relevance logic of its own.
 
-See `README.md` for the full design, the planned MCP tools, and the corpus/config formats.
+See `README.md` for the design, the MCP tools, and the corpus/config formats.
 
 ## Status and layout
 
-The repository is scaffolded and builds a runnable binary, but the server exposes no tools yet. Build order is tracked in the GitHub issues.
+The server serves the tools listed in README § MCP tools over stdio.
 
 ```
 cmd/florilegium/      # binary entry point (constructs the MCP server, speaks stdio)
+internal/config/      # loads and validates the server configuration
+internal/corpus/      # loads and validates the user-supplied corpus
+internal/history/     # durable record of recently used items
+internal/server/      # MCP server and tool contract
 ```
-
-Corpus loading, the history store, and the MCP tool handlers arrive in their own changes and will add packages (likely under an internal path) as that code lands. Do not create those packages speculatively — add them when a change needs them.
 
 ## Build, test, lint
 
 Tool versions are managed by [mise](https://mise.jdx.dev/) (`mise.toml`); tasks run through [just](https://github.com/casey/just) (`justfile`). One-time setup:
 
 ```sh
-mise install     # install pinned Go, golangci-lint, just, lefthook
+mise install     # install the pinned toolchain (mise.toml)
 just hooks       # install git hooks (lefthook)
 ```
 
@@ -60,11 +62,12 @@ Go authoring conventions are in `.claude/rules/go-practices.md` (loaded when edi
 
 - **Single binary, daemonless.** It loads the corpus, reads/writes a small local history store, serves a session over stdio, and exits. No background process, no network service.
 - **MCP over stdio is JSON-RPC.** stdout carries the protocol and nothing else — send diagnostics to stderr (`log`), never to stdout. Exiting on stdin EOF is normal shutdown.
-- **History is a flat, append-only JSON-lines file** (`history.jsonl` under `$XDG_STATE_HOME/florilegium/`), one `{"id","at"}` object per recorded use. The model is an ordered log and the only query is "the last N picks," so a SQL engine and migrations would be weight without benefit for a daemonless, single-process-per-session tool. Recency is count-based — eligibility excludes ids appearing in the most recent N entries. The log is trimmed at startup to a tail safely larger than the recency window, so it stays bounded without ever changing an eligibility result. Known tradeoff: cross-process ordering is by append time, and a second session appending while another is mid-trim can have that append clobbered by the trim's atomic rewrite — at most one item resurfaces a rotation early, accepted rather than locked against for a daemonless tool.
+- **History is a flat, append-only JSON-lines file** — by default `history.jsonl` under `$XDG_STATE_HOME/florilegium/`, relocatable per instance with the config's `history:` field — one `{"id","at"}` object per recorded use. The model is an ordered log and the only query is "the last N picks," so a SQL engine and migrations would be weight without benefit for a daemonless, single-process-per-session tool. Recency is count-based — eligibility excludes ids appearing in the most recent N entries. The log is trimmed at startup to a tail safely larger than the recency window, so it stays bounded without ever changing an eligibility result. Known tradeoff: cross-process ordering is by append time, and a second session sharing the same log appending while another is mid-trim can have that append clobbered by the trim's atomic rewrite — at most one item resurfaces a rotation early, accepted rather than locked against for a daemonless tool.
 
 ## Conventions in this repo
 
 - `.claude/rules/go-practices.md` — Go authoring conventions (path-conditioned to Go files).
+- `.claude/rules/github-actions-pinning.md` — pin every workflow action to a full commit SHA (path-conditioned to `.github/workflows/*.yml`).
 - `.claude/rules/pr-conventions.md` — PR descriptions, commit format, changelog policy, branch freshness, fix-vs-defer.
 - `.claude/rules/pr-waste-patterns.md` — what counts as reviewer-distracting waste in a diff.
 - `.claude/rules/no-personal-details.md` — keep personal/identifying details out of this public repo.

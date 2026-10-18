@@ -36,7 +36,7 @@ In code, this is the `serverName` (lowercase identifier) / `serverTitle` (Title-
 Tool versions are managed by [mise](https://mise.jdx.dev/). After cloning:
 
 ```bash
-mise install        # Install Go, golangci-lint, just, lefthook
+mise install        # Install the pinned toolchain (mise.toml)
 just hooks          # Install git hooks (lefthook)
 ```
 
