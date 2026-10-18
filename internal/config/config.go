@@ -1,7 +1,9 @@
-// Package config loads and validates the florilegium server configuration:
-// the corpus path and the recency window. It does not read the corpus itself —
-// that is the corpus loader's job — so a config can be valid here while the
-// corpus it points at is absent.
+// Package config locates, loads and validates the florilegium server
+// configuration: the corpus path, the recency window and an optional history
+// path. The file is found from the --config flag, then $FLORILEGIUM_CONFIG,
+// then the XDG config dir. It does not read the corpus itself — that is the
+// corpus loader's job — so a config can be valid here while the corpus it
+// points at is absent.
 package config
 
 import (
