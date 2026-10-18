@@ -25,7 +25,7 @@ The project name carries three registers; keep them distinct so capitalization d
 | --- | --- | --- |
 | **Brand** (proper noun) | `Florilegium` (Title-Case) | Prose, sentence-leading mentions, headings, and the MCP display title clients show |
 | **Latin common noun** | *florilegium* (lowercase, italic) | When referring to the *word* or the anthology concept it names, not the product (e.g. the README's etymology gloss) |
-| **Machine identifier** | `florilegium` (lowercase) | The binary, the Go package and import path (`github.com/jakewan/florilegium`), the `mcpServers` config key, `$FLORILEGIUM_CONFIG`, config and state paths, the `log` prefix, and the registry name |
+| **Machine identifier** | `florilegium` (lowercase) | The binary, the Go package and import path (`github.com/jakewan/florilegium`), the `mcpServers` config key, `$FLORILEGIUM_CONFIG`, config and state paths, and the registry name |
 
 In code, this is the `serverName` (lowercase identifier) / `serverTitle` (Title-Case display name) split registered on the MCP server's `Implementation`.
 
